@@ -9,6 +9,7 @@
   "author": "matt pedersen <matthewnpedersen@gmail.com> (http://patmedersen.com/)",
   "license": "MIT",
   "dependencies": {
+    "async": "2.0.0",
     "nightmare": "2.5.3"
   }
 }
