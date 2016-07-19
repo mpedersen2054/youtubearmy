@@ -1,102 +1,111 @@
 var Nightmare = require('nightmare');
-var _ = require('lodash');
-var async = require('async');
-
-// var config = require('./config');
-
-var config = {
-  "emails": [
-    // { "u": "john-adams-1776@yandex.com", "p": "restoreliberty1776" },
-    // { "u": "george-washington-1776@yandex.com", "p": "restoreliberty1776" },
-    { "u": "breathdeeply@yandex.com", "p": "restoreliberty1776", msg: 'i like frogs' },
-    { "u": "breathdeeply2@yandex.com", "p": "restoreliberty1776", msg: 'i like snakes' }
-  ]
-}
-
-var x = {
-  url: 'https://www.youtube.com/watch?v=VVhccP7Q9II',
-  loginUrl: 'https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Fapp%3Ddesktop%26action_handle_signin%3Dtrue%26next%3D%252F%26hl%3Den%26feature%3Dsign_in_button&passive=true&hl=en&service=youtube&uilel=3#identifier',
-  testUrl: 'https://www.youtube.com/watch?v=KnnYiW5dnhQ',
-  sel: { // selectors
-    emailInp:      '#Email',
-    emailBtn:      '#next',
-    rememberMeChk: '#PersistentCookie',
-    passwordInp:   '#password-shown',
-    passwordBtn:   '#signIn'
-  }
-}
-
-var emails = config.emails;
+var config    = require('./config');
+var emails    = config.emails;
 
 function Robot() {
 
   this.init = function(creds, callback) {
-    this.creds = creds;
-    this.n = Nightmare({ show: true });
+    this.creds    = creds;
+    this.n        = Nightmare({ show: true });
     this.callback = callback;
+    this.url      = 'https://www.youtube.com/watch?v=qQfTvTKIsSM';
+    this.loginUrl = 'https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Fapp%3Ddesktop%26action_handle_signin%3Dtrue%26next%3D%252F%26hl%3Den%26feature%3Dsign_in_button&passive=true&hl=en&service=youtube&uilel=3#identifier';
+
+    // for login
+    this.$emailInp        = '#Email';
+    this.$emailBtn        = '#next';
+    this.$rememberMeChk   = '#PersistentCookie';
+    this.$passwordInp     = '#password-shown';
+    this.$passwordBtn     = '#signIn';
+    // for comment
+    this.$commentRenderer = '.comment-simplebox-renderer-collapsed-content';
+    this.$commentText     = '.comment-simplebox-text';
+    this.$commentSubmit   = '.comment-simplebox-submit';
+    // for logout
+    this.$logoutLink      = '.yt-uix-sessionlink';
 
     this.login();
   }
 
+  /*
+  go to the login url, type in the email address & hit submit
+  uncheck 'remember me' and type in the password & hit enter
+  call visitUrl
+  */
   this.login = function() {
     var self = this;
 
     self.n
-      .goto(x.loginUrl)
-      .type(x.sel.emailInp, self.creds.u)
-      .click(x.sel.emailBtn)
+      .goto(self.loginUrl)
+      .type(self.$emailInp, self.creds.u)
+      .click(self.$emailBtn)
       .wait(1000)
-      .uncheck(x.sel.rememberMeChk)
-      .type(x.sel.passwordInp, self.creds.p)
-      .click(x.sel.passwordBtn)
+      .uncheck(self.$rememberMeChk)
+      .type(self.$passwordInp, self.creds.p)
+      .click(self.$passwordBtn)
       .then(function() {
         console.log(`successfully logged in on u: ${self.creds.u} , p: ${self.creds.p}`)
-        // this.clearCookies()
-        self.visitUrl(x.testUrl)
+        self.visitUrl()
       })
   }
 
-  this.visitUrl = function(url) {
+  /*
+  visit the secified url and then call sendComment
+  */
+  this.visitUrl = function() {
     var self = this;
 
     self.n
       .wait(2000)
-      .goto(x.url)
+      .goto(self.url)
       .then(function() {
         self.sendComment();
       })
   }
 
+  /*
+  wait for the comment sectio to render then enter in
+  specified comment, click submit, then call logout()
+  */
   this.sendComment = function() {
     var self = this;
 
     self.n
-      // scrollTo because sometimes the comments dont load
-      // unless they have been inside of the browser window
+      /*
+      scrollTo because sometimes the comments dont load
+      unless they have been inside of the browser window
+      */
       .scrollTo(600, 0)
-      .wait('.comment-simplebox-renderer-collapsed-content')
-      .click('.comment-simplebox-renderer-collapsed-content')
-      .type('.comment-simplebox-text', self.creds.msg)
-      .click('.comment-simplebox-submit')
+      .wait(self.$commentRenderer)
+      .click(self.$commentRenderer)
+      .type(self.$commentText, self.creds.msg)
+      .click(self.$commentSubmit)
       .then(function(data) {
-        // self.endProcess();
         self.logout();
       })
   }
 
+  /*
+  click the logout link, call clearCookies
+  */
   this.logout = function() {
     var self = this;
 
     self.n
       .wait()
-      .click('.yt-uix-sessionlink')
+      .click(self.$logoutLink)
       .wait(4000)
       .then(function() {
-        // self.endProcess()
         self.clearCookies();
       })
   }
 
+  /*
+  get all of the cookies [], loop over array and
+  call .clear on each cookie, call end process
+  --- there was trouble having multiple instances
+  --- comment without clearing the cookies
+  */
   this.clearCookies = function() {
     var self = this;
 
@@ -110,11 +119,14 @@ function Robot() {
       })
       .then(function() {
         console.log('cookies cleared!')
-        // self.visitUrl(x.testUrl)
         self.endProcess()
       })
   }
 
+  /*
+  end the process & close the window, call the callback
+  that was defined in .init()
+  */
   this.endProcess = function() {
     var self = this;
 
@@ -124,25 +136,12 @@ function Robot() {
         console.log(`finished the process for the account u: ${self.creds.u}`)
         self.callback()
       })
-      // .end()
   }
 }
 
-
-
-// for (var i = 0; i < emails.length; i++) {
-//   var robo = new Robot()
-//   robo.init(emails[i])
-// }
-
-// new Robot().init(emails[0], function() {
-//   console.log('done!!!!!')
-// })
-
+// instantiate new Robot instance(s)
 new Robot().init(emails[0], function() {
   new Robot().init(emails[1], function() {
     console.log('all done!')
   })
 })
-
-console.log('after the loop')
