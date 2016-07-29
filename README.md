@@ -15,3 +15,5 @@ If you want to try it out, download or clone the project, install the packages, 
 ```
 
 Where 'u' is for username, 'p' is for password, and 'msg' is the message to be posted to youtube, and 'url' is the url for the Youtube video.
+
+Once you setup the `config.js` file you can run `$ node index.js` and the automation will begin!
